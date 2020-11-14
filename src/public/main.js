@@ -27,7 +27,7 @@ $(function() {
 
   //var socket = io();
   // in 1.0
-var socket = io.connect('http://kohabox:80', {
+var socket = io.connect('http://kohabox', {
   'path': '/chat/socket.io'
 });
   const users = new Set();
