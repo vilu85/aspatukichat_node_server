@@ -25,11 +25,11 @@ $(function() {
   var lastTypingTime;
   var $currentInput = $usernameInput.focus();
 
-  //var socket = io();
+  var socket = io();
   // in 1.0
-var socket = io.connect('http://kohabox', {
-  'path': '/chat/socket.io'
-});
+  // var socket = io.connect('http://kohabox', {
+  //   'path': '/chat/socket.io'
+  // });
   const users = new Set();
   
   const addToUsersBox = (userName) => {
