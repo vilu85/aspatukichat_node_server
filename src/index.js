@@ -4,9 +4,18 @@ var app = express();
 var path = require('path');
 var server = require('http').createServer(app);
 var io = require('socket.io')(server);
-var port = process.env.PORT || 3000;
+var port = process.env.PORT || 3001;
 var registry = new Map();
 const activeUsers = new Set();
+const messageCache = new Set();
+const messageCacheSize = 5;
+class cachedMessage {
+  constructor(userIn, contentIn) {
+    this.user = userIn;
+    this.content = contentIn;
+    this.time = new Date();
+  }
+}
 
 server.listen(port, () => {
   console.log('AspaTukiChat Server listening at port %d', port);
@@ -24,6 +33,7 @@ io.on('connection', (socket) => {
 
   // when the client emits 'new message', this listens and executes
   socket.on('new message', (data) => {
+    addMessageCache(new cachedMessage(socket.username, data));
     // we tell the client to execute 'new message'
     if(data.length > 1 && data.charAt(0) == "/") {
       parseCommand(data);
@@ -48,7 +58,8 @@ io.on('connection', (socket) => {
     socket.emit('login', {
       numUsers: numUsers,
       username: socket.username,
-      activeUsers: [...activeUsers]
+      activeUsers: [...activeUsers],
+      messageCache: [...messageCache]
     });
     // echo globally (all clients) that a person has connected
     socket.broadcast.emit('user joined', {
@@ -148,6 +159,14 @@ registerCommand("users", function(cmd) {
 //     });
 //   return "Disconnected.";
 // });
+
+function addMessageCache(msgData) {
+  messageCache.add(msgData);
+  if(messageCache.size > messageCacheSize) {
+    console.log("messageCache.size exceeds limit, deleting the oldest entry: " + [...messageCache][0]);
+    messageCache.delete([...messageCache][0]);
+  }
+}
 
 function registerCommands([...commands], func) {
   [...commands].forEach(cmd => {
