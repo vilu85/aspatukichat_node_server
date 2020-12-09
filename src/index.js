@@ -22,7 +22,7 @@ server.listen(port, () => {
 });
 
 // Routing
-app.use(express.static(path.join(__dirname, 'public')));
+//app.use(express.static(path.join(__dirname, 'public')));
 
 // Chatroom
 
@@ -126,9 +126,9 @@ registerCommand("help", function(cmd) {
     if (parameters.length === 0) {
         var helpText = "Commands: ";
 
-        registry.keys.forEach(registeredCmd => {
+        for (var registeredCmd of registry.keys()) {
           helpText += "/" + registeredCmd;
-        });
+        }
         return "Commands: /users, /chat disable|enable [message] " + helpText;
     }
 
@@ -147,6 +147,11 @@ registerCommand("users", function(cmd) {
     var helpContext = "Users: " + [...activeUsers];
     return helpContext;
 });
+
+//registerCommand2("chat", ["enable", ["disable", "message"]], function(cmd) {
+//  var helpContext = "Users: " + [...activeUsers];
+//  return helpContext;
+//});
 
 // registerCommands(["quit", "exit", "disconnect", "logout"], function(cmd) {
 //     --numUsers;
@@ -178,6 +183,10 @@ function registerCommands([...commands], func) {
 function registerCommand(command, func) {
     registry.set(command.toString().toLowerCase(), func);
 }
+
+//function registerCommand2(command, args, func) {
+//  registry.set(command.toString().toLowerCase(), func);
+//}
 
 function smart_split(input, del, empty_space) {
     if (input.length === 0) return input;
