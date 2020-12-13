@@ -29,5 +29,11 @@
     "gulp-zip": "^5.0.2",
     "gulp-javascript-obfuscator": "^1.1.6"
   },
-  "dependencies": {}
+  "dependencies": {
+    "express": "~4.17.1",
+    "socket.io": "~2.3.0"
+  },
+  "scripts": {
+    "start": "node src/index.js"
+  }
 }
