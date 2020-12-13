@@ -7,6 +7,8 @@ var io = require('socket.io')(server);
 var port = process.env.PORT || 3001;
 var registry = new Map();
 const activeUsers = new Set();
+var users = [],
+    users_connected = [];
 const messageCache = new Set();
 const messageCacheSize = 5;
 class cachedMessage {
@@ -22,7 +24,7 @@ server.listen(port, () => {
 });
 
 // Routing
-//app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Chatroom
 
@@ -30,6 +32,11 @@ var numUsers = 0;
 
 io.on('connection', (socket) => {
   var addedUser = false;
+  var uid = null;
+
+  var cookie = socket.handshake.headers.cookie;
+  var match = cookie.match(/\buser_id=([a-zA-Z0-9]{32})/);  //parse cookie header
+  var userId = match ? match[1] : null;
 
   // when the client emits 'new message', this listens and executes
   socket.on('new message', (data) => {
@@ -48,7 +55,25 @@ io.on('connection', (socket) => {
   // when the client emits 'add user', this listens and executes
   socket.on('add user', (username) => {
     if (addedUser) return;
+    
+    if ( users_connected.indexOf(userId) < 0 ) {
+      users_connected.push(userId);
+    }
 
+    if ( users.indexOf(userId) < 0 ) {
+      console.log('New user connected: ' + userId);
+      users.push(userId);
+
+      // echo globally (all clients) that a person has connected
+      socket.broadcast.emit('user joined', {
+        username: socket.username,
+        userId: userId,
+        numUsers: numUsers,
+        activeUsers: [...activeUsers]
+      });
+    }
+
+    uid = userId;
     // we store the username in the socket session for this client
     socket.username = username;
     ++numUsers;
@@ -58,15 +83,16 @@ io.on('connection', (socket) => {
     socket.emit('login', {
       numUsers: numUsers,
       username: socket.username,
+      userId: userId,
       activeUsers: [...activeUsers],
       messageCache: [...messageCache]
     });
-    // echo globally (all clients) that a person has connected
-    socket.broadcast.emit('user joined', {
-      username: socket.username,
-      numUsers: numUsers,
-      activeUsers: [...activeUsers]
-    });
+    // // echo globally (all clients) that a person has connected
+    // socket.broadcast.emit('user joined', {
+    //   username: socket.username,
+    //   numUsers: numUsers,
+    //   activeUsers: [...activeUsers]
+    // });
   });
 
   // when the client emits 'typing', we broadcast it to others
@@ -86,14 +112,30 @@ io.on('connection', (socket) => {
   // when the user disconnects.. perform this
   socket.on('disconnect', () => {
     if (addedUser) {
-      --numUsers;
-      activeUsers.delete(socket.userId);
+      users_connected.splice( users_connected.indexOf(uid), 1);
+
+      setTimeout(function () {
+        if ( users_connected.indexOf(uid) < 0 ) {
+          --numUsers;
+          activeUsers.delete(socket.userId);
+          // echo globally that this client has left
+          socket.broadcast.emit('user left', {
+            username: socket.username,
+            userId: uid,
+            numUsers: numUsers
+          });
+
+          var index = users.indexOf(uid);
+          users.splice(index, 1);
+        }
+      }, 3000);
       
-      // echo globally that this client has left
-      socket.broadcast.emit('user left', {
-        username: socket.username,
-        numUsers: numUsers
-      });
+      
+      // // echo globally that this client has left
+      // socket.broadcast.emit('user left', {
+      //   username: socket.username,
+      //   numUsers: numUsers
+      // });
     }
   });
   
