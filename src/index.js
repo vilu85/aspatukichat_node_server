@@ -28,10 +28,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Chatroom
 
-var numUsers = 0;
-
 io.on('connection', (socket) => {
-  var addedUser = false;
+  var isConnected = false;
   var uid = null;
 
   var cookie = socket.handshake.headers.cookie;
@@ -54,34 +52,20 @@ io.on('connection', (socket) => {
 
   // when the client emits 'add user', this listens and executes
   socket.on('add user', (username) => {
-    if (addedUser) return;
+    if (isConnected) return;
     
     if ( users_connected.indexOf(userId) < 0 ) {
       users_connected.push(userId);
     }
 
-    if ( users.indexOf(userId) < 0 ) {
-      console.log('New user connected: ' + userId);
-      users.push(userId);
-
-      // echo globally (all clients) that a person has connected
-      socket.broadcast.emit('user joined', {
-        username: socket.username,
-        userId: userId,
-        numUsers: numUsers,
-        activeUsers: [...activeUsers]
-      });
-    }
-
     uid = userId;
     // we store the username in the socket session for this client
     socket.username = username;
-    ++numUsers;
-    socket.userId = username;
+    socket.userId = userId;
     activeUsers.add(username);
-    addedUser = true;
+    isConnected = true;
     socket.emit('login', {
-      numUsers: numUsers,
+      numUsers: activeUsers.size,
       username: socket.username,
       userId: userId,
       activeUsers: [...activeUsers],
@@ -93,6 +77,18 @@ io.on('connection', (socket) => {
     //   numUsers: numUsers,
     //   activeUsers: [...activeUsers]
     // });
+    if ( users.indexOf(userId) < 0 ) {
+      console.log('New user connected: ' + userId);
+      users.push(userId);
+
+      // echo globally (all clients) that a person has connected
+      socket.broadcast.emit('user joined', {
+        username: socket.username,
+        userId: userId,
+        numUsers: users.length,
+        activeUsers: [...activeUsers]
+      });
+    }
   });
 
   // when the client emits 'typing', we broadcast it to others
@@ -111,24 +107,23 @@ io.on('connection', (socket) => {
 
   // when the user disconnects.. perform this
   socket.on('disconnect', () => {
-    if (addedUser) {
+    if (isConnected) {
       users_connected.splice( users_connected.indexOf(uid), 1);
 
       setTimeout(function () {
         if ( users_connected.indexOf(uid) < 0 ) {
-          --numUsers;
-          activeUsers.delete(socket.userId);
+          activeUsers.delete(socket.username);
           // echo globally that this client has left
           socket.broadcast.emit('user left', {
             username: socket.username,
             userId: uid,
-            numUsers: numUsers
+            numUsers: activeUsers.size
           });
 
           var index = users.indexOf(uid);
           users.splice(index, 1);
         }
-      }, 3000);
+      }, 8000);
       
       
       // // echo globally that this client has left

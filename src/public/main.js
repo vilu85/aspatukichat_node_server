@@ -280,6 +280,7 @@ $(function() {
       prepend: true
     });
     addParticipantsMessage(data);
+    data.activeUsers.map((user) => { users.add(user); addToUsersBox(user);});    
   });
 
   // Whenever the server emits 'new message', update the chat body
