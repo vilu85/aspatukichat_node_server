@@ -40,11 +40,12 @@ io.on('connection', (socket) => {
 
   // when the client emits 'new message', this listens and executes
   socket.on('new message', (data) => {
-    addMessageCache(new cachedMessage(socket.username, data));
+    
     // we tell the client to execute 'new message'
     if(data.length > 1 && data.charAt(0) == "/") {
       parseCommand(data);
     } else {
+      addMessageCache(new cachedMessage(socket.username, data));
       socket.broadcast.emit('new message', {
         username: socket.username,
         message: data
@@ -195,17 +196,17 @@ registerCommand("users", function(cmd) {
 //  return helpContext;
 //});
 
-// registerCommands(["quit", "exit", "disconnect", "logout"], function(cmd) {
-//     --numUsers;
-//     activeUsers.delete(socket.userId);
+registerCommands(["quit", "exit", "disconnect", "logout"], function(cmd) {
+    --numUsers;
+    activeUsers.delete(socket.userId);
     
-//     // echo globally that this client has left
-//     socket.broadcast.emit('user left', {
-//       username: socket.username,
-//       numUsers: numUsers
-//     });
-//   return "Disconnected.";
-// });
+    // echo globally that this client has left
+    socket.broadcast.emit('user left', {
+      username: socket.username,
+      numUsers: numUsers
+    });
+    return "Disconnected.";
+});
 
 function addMessageCache(msgData) {
   messageCache.add(msgData);
@@ -260,9 +261,9 @@ function smart_split(input, del, empty_space) {
     }
 
     if (!empty_space) {
-        for (var i = 0; i < outputs.length; i++) {
-            if (outputs[i] === "") {
-                outputs.splice(i, 1);
+        for (var j = 0; j < outputs.length; j++) {
+            if (outputs[j] === "") {
+                outputs.splice(j, 1);
             }
         }
     }
