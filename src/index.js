@@ -24,7 +24,7 @@ server.listen(port, () => {
 });
 
 // Routing
-app.use(express.static(path.join(__dirname, 'public')));
+//app.use(express.static(path.join(__dirname, 'public')));
 
 // Chatroom
 
@@ -137,8 +137,8 @@ io.on('connection', (socket) => {
   
   function replyClient(data) {
     socket.emit('new server message', {
-        data: data
-      });
+      data: data
+    });
   }
 
   function parseCommand(data) {
@@ -192,13 +192,12 @@ registerCommand("users", function(cmd) {
 //});
 
 registerCommands(["quit", "exit", "disconnect", "logout"], function(cmd) {
-    --numUsers;
     activeUsers.delete(socket.userId);
     
     // echo globally that this client has left
     socket.broadcast.emit('user left', {
       username: socket.username,
-      numUsers: numUsers
+      numUsers: users.size
     });
     return "Disconnected.";
 });
