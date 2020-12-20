@@ -17,6 +17,7 @@ $(function() {
   var $chatPage = $('.chat.page'); // The chatroom page
   
   const inboxPeople = document.querySelector(".inbox__people"); // User list
+  var $btnScreenshot = $('#btnScreenshot');
 
   // Prompt for setting a username
   var username;
@@ -234,6 +235,12 @@ $(function() {
     return COLORS[index];
   };
 
+  // Send image to server
+  const sendImage = (image) => {
+    // Server side
+    socket.emit('image', image.toString('base64')); // image should be a buffer
+  };
+  
   // Keyboard events
 
   $window.keydown(event => {
@@ -267,6 +274,15 @@ $(function() {
   // Focus input when clicking on the message input's border
   $inputMessage.click(() => {
     $inputMessage.focus();
+  });
+
+  $btnScreenshot.click(() => {
+    html2canvas(document.body).then(function(canvas) {
+      var screenshot = canvas;
+      //document.body.appendChild(canvas);
+      console.log("Screenshot captured, now emitting it to server");
+      sendImage(screenshot.toDataURL());
+    });
   });
 
   // Socket events
@@ -336,4 +352,21 @@ $(function() {
     addChatMessage(data2);
   });
 
+  // Receive images
+  socket.on('image', (data) => {
+    console.log("socket.on image event called");
+    // create image with
+    const img = new Image();
+    // change image type to whatever you use, or detect it in the backend 
+    // and send it if you support multiple extensions
+    img.src = `${data.image}`; 
+    // Insert it into the DOM
+    var $messageBodyDiv = $('<span class="messageBody">')
+      .append(img);
+
+    var $messageDiv = $('<li class="message"/>')
+      .append($messageBodyDiv);
+
+    addMessageElement($messageDiv, []);
+  });
 });

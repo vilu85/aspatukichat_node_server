@@ -1,5 +1,6 @@
 // Setup basic express server
 var express = require('express');
+var fs = require('fs');
 var app = express();
 var path = require('path');
 var server = require('http').createServer(app);
@@ -24,7 +25,7 @@ server.listen(port, () => {
 });
 
 // Routing
-//app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Chatroom
 
@@ -133,6 +134,17 @@ io.on('connection', (socket) => {
       //   numUsers: numUsers
       // });
     }
+  });
+
+  // when the client emits 'image', we broadcast it to others
+  socket.on('image', async image => {
+    console.log('socket.on image called, creating and writing image to the buffer');
+    const buffer = Buffer.from(image, 'base64');
+    //TODO: Try buffer
+    socket.broadcast.emit('image', {
+      username: socket.username,
+      image: image
+    });
   });
   
   function replyClient(data) {
