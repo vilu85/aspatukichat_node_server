@@ -165,3 +165,11 @@ li.chat.users {
   border-style: inset;
   padding: 5pt;
 }
+
+/* Screenshots */
+img.screenshot {
+  display: block;
+  position: relative;
+  width: 50%;
+  height: 50%;
+}

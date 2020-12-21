@@ -1,3 +1,22 @@
+class cachedMessage {
+  constructor(userIn, contentIn, timeIn, imageIn = undefined) {
+    this.user = userIn;
+    this.content = contentIn;
+    this.time = timeIn;
+    this.image = imageIn;
+  }
+
+  getData() {
+    var data = {
+      'username' : this.user,
+      'message' : this.content,
+      'time' : this.time,
+      'image' : (this.image || undefined)
+    };
+
+    return data;
+  }
+}
 $(function() {
   var FADE_TIME = 150; // ms
   var TYPING_TIMER_LENGTH = 400; // ms
@@ -25,6 +44,7 @@ $(function() {
   var typing = false;
   var lastTypingTime;
   var $currentInput = $usernameInput.focus();
+  var screenshot;
 
   const generateHash = (len) => {
     var symbols = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
@@ -101,10 +121,21 @@ $(function() {
       $inputMessage.val('');
       addChatMessage({
         username: username,
-        message: message
+        message: message,
+        image: (screenshot !== undefined ? screenshot : undefined)
       });
-      // tell server to execute 'new message' and send along one parameter
-      socket.emit('new message', message);
+
+      if(screenshot !== undefined) {
+        var messageWithImage = {
+          message : message,
+          image : screenshot
+        };
+        socket.emit('new image message', messageWithImage);
+        screenshot = undefined;
+      } else {
+        // tell server to execute 'new message' and send along one parameter
+        socket.emit('new message', message);
+      }
     }
   };
 
@@ -112,6 +143,11 @@ $(function() {
   const log = (message, options) => {
     var $el = $('<li>').addClass('log').text(message);
     addMessageElement($el, options);
+  };
+
+  // Adds a cached chat message to the message list
+  const addCachedMessage = (cachedMsg) => {
+    addChatMessage(cachedMsg.getData(), { 'time' : cachedMsg.time });
   };
 
   // Adds the visual chat message to the message list
@@ -124,7 +160,7 @@ $(function() {
       $typingMessages.remove();
     }
 
-    const time = new Date();
+    const time = (options.time ?  new Date(options.time) : new Date());
     const formattedTime = time.toLocaleString("en-US", { hour: "numeric", minute: "numeric" });
     var $timeDiv = $('<span class="time_date"/>')
       .text(formattedTime);
@@ -138,10 +174,25 @@ $(function() {
       .text(data.message);
 
     var typingClass = data.typing ? 'typing' : '';
+    var $imageDiv = '';
+
+    if(data.image !== undefined) {
+      // create image with
+      const img = new Image();
+      // change image type to whatever you use, or detect it in the backend 
+      // and send it if you support multiple extensions
+      img.src = `${data.image}`;
+      var $img = $(img).addClass("screenshot");
+
+      // Insert it into the DOM
+      $imageDiv = $('<span class="screenshot">')
+        .append($img);
+    }
+
     var $messageDiv = $('<li class="message"/>')
       .data('username', data.username)
       .addClass(typingClass)
-      .append($usernameDiv, $messageBodyDiv, $infoDiv);
+      .append($usernameDiv, $imageDiv, $messageBodyDiv, $infoDiv);
 
     addMessageElement($messageDiv, options);
   };
@@ -274,14 +325,17 @@ $(function() {
   // Focus input when clicking on the message input's border
   $inputMessage.click(() => {
     $inputMessage.focus();
+    // $('.inputMessage')
   });
 
   $btnScreenshot.click(() => {
     html2canvas(document.body).then(function(canvas) {
-      var screenshot = canvas;
+      var screenshot1 = canvas;
+      var screenshot2 = screenshot1.toDataURL();
+      screenshot = screenshot2.toString('base64');
       //document.body.appendChild(canvas);
-      console.log("Screenshot captured, now emitting it to server");
-      sendImage(screenshot.toDataURL());
+      console.log("Screenshot captured and saved in variable 'screenshot'");
+      // sendImage(screenshot.toDataURL());
     });
   });
 
@@ -296,7 +350,12 @@ $(function() {
       prepend: true
     });
     addParticipantsMessage(data);
-    data.activeUsers.map((user) => { users.add(user); addToUsersBox(user);});    
+    data.activeUsers.map((user) => { users.add(user); addToUsersBox(user);});
+    if(data.messageCache) {
+      data.messageCache.map((msgEntry) => {
+        addCachedMessage(new cachedMessage(msgEntry.user, msgEntry.content, msgEntry.time, msgEntry.image));
+      });
+    }  
   });
 
   // Whenever the server emits 'new message', update the chat body
