@@ -13,10 +13,11 @@ var users = [],
 const messageCache = new Set();
 const messageCacheSize = 5;
 class cachedMessage {
-  constructor(userIn, contentIn) {
+  constructor(userIn, contentIn, imageIn = undefined) {
     this.user = userIn;
     this.content = contentIn;
     this.time = new Date();
+    this.image = imageIn;
   }
 }
 
@@ -50,6 +51,16 @@ io.on('connection', (socket) => {
         message: data
       });
     }
+  });
+
+  // when the client emits 'new image message', this listens and executes
+  socket.on('new image message', (data) => {
+    addMessageCache(new cachedMessage(socket.username, data.message, data.image));
+    socket.broadcast.emit('new message', {
+      username: socket.username,
+      message: data.message,
+      image: data.image
+    });  
   });
 
   // when the client emits 'add user', this listens and executes
