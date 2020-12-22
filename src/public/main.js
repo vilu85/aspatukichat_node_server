@@ -37,6 +37,7 @@ $(function() {
   
   const inboxPeople = document.querySelector(".inbox__people"); // User list
   var $btnScreenshot = $('#btnScreenshot');
+  var $imgviewermodal = $('#imgViewerModal');
 
   // Prompt for setting a username
   var username;
@@ -88,9 +89,9 @@ $(function() {
   const addParticipantsMessage = (data) => {
     var message = '';
     if (data.numUsers === 1) {
-      message += "there's 1 participant";
+      message += "There's 1 participant";
     } else {
-      message += "there are " + data.numUsers + " participants";
+      message += "There are " + data.numUsers + " participants";
     }
     log(message);
   };
@@ -337,6 +338,24 @@ $(function() {
       console.log("Screenshot captured and saved in variable 'screenshot'");
       // sendImage(screenshot.toDataURL());
     });
+  });
+
+  // Show image viewer modal when clicking on the any screenshot image
+  $messages.click((e) => {
+    if(e.target.className == "screenshot") {
+      $('#imgViewer').html('').append( $(e.target).clone().removeClass('screenshot') );
+      $imgviewermodal.css("display", "block");
+    }
+  });
+
+  // Close image viewer modal when clicking on 'X' button
+  $('.imgclose').click(() => {
+    $imgviewermodal.css("display", "none");
+  });
+
+  // Close image viewer modal when clicking anywhere in window
+  $imgviewermodal.click(()=>{
+    $imgviewermodal.css("display", "none");
   });
 
   // Socket events
