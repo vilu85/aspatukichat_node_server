@@ -58,8 +58,14 @@ gulp.task('html', function() {
 
 gulp.task('zip', function () {
   return gulp.src('./src/**')
+                .pipe( zip('AspaTukiChatPlugin_node-sources.zip') )
+                .pipe(gulp.dest('./dist'));
+});
+
+gulp.task('zipBuild', function () {
+  return gulp.src('./build/**')
                 .pipe( zip('AspaTukiChatPlugin_node.zip') )
-                .pipe(gulp.dest('./build'));
+                .pipe(gulp.dest('./dist'));
 });
 
 var files = [
@@ -146,13 +152,13 @@ gulp.task( 'automate', function() {
 // });
 
 // Clean output directory
-gulp.task('clean', () => del(['build']));
+gulp.task('clean', () => {del(['build']); del(['dist']);});
 
 // Gulp task to minify all files
 gulp.task( 'minifyAll', gulp.series('styles','scripts','html'));
  
-gulp.task( 'default', gulp.series('zip'));
+gulp.task( 'default', gulp.series('buildSources', 'minifyAll', 'zipBuild'));
 
-gulp.task( 'build', gulp.series( 'zip' ));
+gulp.task( 'build source zip', gulp.series( 'zip' ));
 
-//gulp.task( 'build release', gulp.series( 'buildSources', 'minifyAll', 'obfuscate', 'zip' ));
+gulp.task( 'build minified release', gulp.series( 'buildSources', 'minifyAll', 'zipBuild' ));
