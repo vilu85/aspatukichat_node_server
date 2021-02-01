@@ -6,6 +6,10 @@ const htmlmin = require('gulp-htmlmin');
 const del = require('del');
 const zip = require('gulp-zip');
 const javascriptObfuscator = require('gulp-javascript-obfuscator');
+const args = require('yargs').argv;
+const bump = require('gulp-bump');
+const fs = require('fs');
+const replace = require('gulp-replace');
 
 var jsSrc = './src/**/*.js';
 var cssSrc = './src/**/*.css';
@@ -92,35 +96,36 @@ gulp.task( 'automate', function() {
   gulp.watch( [ jsSrc, cssSrc, htmlSrc ], gulp.series('scripts', 'styles', 'html'));
 });
 
-// gulp.task('bump', function () {
-//   /// <summary>
-//   /// It bumps revisions
-//   /// Usage:
-//   /// 1. gulp bump : bumps the package.json and bower.json to the next minor revision.
-//   ///   i.e. from 0.1.1 to 0.1.2
-//   /// 2. gulp bump --version 1.1.1 : bumps/sets the package.json and bower.json to the 
-//   ///    specified revision.
-//   /// 3. gulp bump --type major       : bumps 1.0.0 
-//   ///    gulp bump --type minor       : bumps 0.1.0
-//   ///    gulp bump --type patch       : bumps 0.0.2
-//   ///    gulp bump --type prerelease  : bumps 0.0.1-2
-//   /// </summary>
+gulp.task( 'bump', function () {
+  /// <summary>
+  /// It bumps revisions
+  /// Usage:
+  /// 1. gulp bump : bumps the package.json and bower.json to the next minor revision.
+  ///   i.e. from 0.1.1 to 0.1.2
+  /// 2. gulp bump --version 1.1.1 : bumps/sets the package.json and bower.json to the 
+  ///    specified revision.
+  /// 3. gulp bump --type major       : bumps 1.0.0 
+  ///    gulp bump --type minor       : bumps 0.1.0
+  ///    gulp bump --type patch       : bumps 0.0.2
+  ///    gulp bump --type prerelease  : bumps 0.0.1-2
+  /// </summary>
 
-//   var type = args.type;
-//   var version = args.version;
-//   var options = {};
-//   if (version) {
-//       options.version = version;
-//       msg += ' to ' + version;
-//   } else {
-//       options.type = type;
-//       msg += ' for a ' + type;
-//   }
+  var type = args.type;
+  var version = args.version;
+  var msg = version;
+  var options = {};
+  if (version) {
+      options.version = version;
+      msg += ' to ' + version;
+  } else {
+      options.type = type;
+      msg += ' for a ' + type;
+  }
 
-//   return gulp.src(['./package.json'])
-//                 .pipe(bump(options))
-//                 .pipe(gulp.dest('./'));
-// });
+  return gulp.src(['./package.json'])
+                .pipe(bump(options))
+                .pipe(gulp.dest('./'));
+});
 
 // gulp.task('increment-version', function(){
 //   //docString is the file from which you will get your constant string
@@ -157,8 +162,8 @@ gulp.task('clean', () => {del(['build']); del(['dist']);});
 // Gulp task to minify all files
 gulp.task( 'minifyAll', gulp.series('styles','scripts','html'));
  
-gulp.task( 'default', gulp.series('buildSources', 'minifyAll', 'zipBuild'));
+gulp.task( 'default', gulp.series('bump', 'buildSources', 'minifyAll', 'zipBuild'));
 
-gulp.task( 'build source zip', gulp.series( 'zip' ));
+gulp.task( 'build source zip', gulp.series( 'bump', 'zip' ));
 
-gulp.task( 'build minified release', gulp.series( 'buildSources', 'minifyAll', 'zipBuild' ));
+gulp.task( 'build minified release', gulp.series( 'bump', 'buildSources', 'minifyAll', 'zipBuild' ));

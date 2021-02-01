@@ -1,6 +1,6 @@
 {
   "name": "aspatukichat_node_server",
-  "version": "1.0.0",
+  "version": "1.2.2",
   "description": "Node Server for AspaTukiChat plugin",
   "main": "index.js",
   "author": "Ville Perkkio",
@@ -31,6 +31,8 @@
   },
   "dependencies": {
     "express": "~4.17.1",
+    "gulp-bump": "^3.2.0",
+    "gulp-replace": "^1.0.0",
     "socket.io": "~2.3.0"
   },
   "scripts": {
