@@ -33,6 +33,7 @@
     "express": "~4.17.1",
     "gulp-bump": "^3.2.0",
     "gulp-replace": "^1.0.0",
+    "io-session-handler": "^1.0.74",
     "socket.io": "~2.3.0"
   },
   "scripts": {

@@ -5,6 +5,7 @@ var app = express();
 var path = require('path');
 var server = require('http').createServer(app);
 var io = require('socket.io')(server);
+const session_handler = require('io-session-handler').from(io, { timeout: 5000 });
 var port = process.env.PORT || 3001;
 var registry = new Map();
 const activeUsers = new Set();
@@ -27,6 +28,17 @@ server.listen(port, () => {
 
 // Routing
 app.use(express.static(path.join(__dirname, 'public')));
+
+/**
+ * // Chatroom with session handler
+ * Connection returns - Token, ID and the Status (1 - connected, 0 - Disconnected)
+ * 
+ * { id: '123', token: '5200cc4a59795529', status: 1 }
+ * 
+ **/
+session_handler.connectionListener((connection) => {
+  console.log(connection);
+});
 
 // Chatroom
 
