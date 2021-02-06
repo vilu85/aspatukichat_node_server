@@ -1,3 +1,4 @@
+const serverProtocolVersion = "1.3.0";
 // Setup basic express server
 var express = require('express');
 var fs = require('fs');
@@ -5,12 +6,12 @@ var app = express();
 var path = require('path');
 var server = require('http').createServer(app);
 var io = require('socket.io')(server);
-const session_handler = require('io-session-handler').from(io, { timeout: 5000 });
 var port = process.env.PORT || 3001;
 var registry = new Map();
-const activeUsers = new Set();
+
 var users = [],
-    users_connected = [];
+    users_connected = [],
+    sessions = [];
 const messageCache = new Set();
 const messageCacheSize = 5;
 class cachedMessage {
@@ -21,7 +22,15 @@ class cachedMessage {
     this.image = imageIn;
   }
 }
+class chatUser {
+  constructor(username, token, id) {
+    this.username = username;
+    this.token = token;
+    this.id = id;
+  }
+}
 
+const activeUsers = new Set();
 server.listen(port, () => {
   console.log('AspaTukiChat Server listening at port %d', port);
 });
@@ -29,30 +38,42 @@ server.listen(port, () => {
 // Routing
 app.use(express.static(path.join(__dirname, 'public')));
 
-/**
- * // Chatroom with session handler
- * Connection returns - Token, ID and the Status (1 - connected, 0 - Disconnected)
- * 
- * { id: '123', token: '5200cc4a59795529', status: 1 }
- * 
- **/
-session_handler.connectionListener((connection) => {
-  console.log(connection);
-});
-
 // Chatroom
 
 io.on('connection', (socket) => {
-  var isConnected = false;
-  var uid = null;
-
+  var isConnected = true;
+  //var uid = null;
   var cookie = socket.handshake.headers.cookie;
   var match = cookie.match(/\buser_id=([a-zA-Z0-9]{32})/);  //parse cookie header
   var userId = match ? match[1] : null;
 
+  const token = userId;//socket.handshake.query.token;
+  const id = socket.id;  
+
+  // Connected
+  onConnect(id, token, (data) => {
+    //This is run only if the session does not already exists
+    console.log('New user connected: id = %s, token = %s', data.id, data.token);
+    isConnected = false;
+  });
+
+  socket.on('disconnect', () => {
+      // Disconnected
+      onDisconnect(id, token, 5000, (data) => {
+        var disconnectedUser = getChatUser(data.token);
+        activeUsers.delete(disconnectedUser);
+        // echo globally that this client has left
+        socket.broadcast.emit('user left', {
+          username: disconnectedUser.username,
+          numUsers: activeUsers.size
+        });
+        console.log('User disconnected: id = %s, token = %s, chatUser = %s', data.id, data.token, disconnectedUser);
+      });
+  });
+
   // when the client emits 'new message', this listens and executes
   socket.on('new message', (data) => {
-    
+    console.log('socket.on: new message, data = %s', data);
     // we tell the client to execute 'new message'
     if(data.length > 1 && data.charAt(0) == "/") {
       parseCommand(data);
@@ -77,43 +98,57 @@ io.on('connection', (socket) => {
 
   // when the client emits 'add user', this listens and executes
   socket.on('add user', (username) => {
-    if (isConnected) return;
-    
-    if ( users_connected.indexOf(userId) < 0 ) {
-      users_connected.push(userId);
-    }
-
-    uid = userId;
-    // we store the username in the socket session for this client
+    console.log('socket.on: add user, username = %s', username);
     socket.username = username;
     socket.userId = userId;
-    activeUsers.add(username);
-    isConnected = true;
+
+    if(getChatUser(token) == undefined) {
+      console.log('socket.on: add user, getChatUser(%s) returned undefined, adding new active user', token);
+      activeUsers.add(new chatUser(username, token, id));
+    }
+
     socket.emit('login', {
       numUsers: activeUsers.size,
       username: socket.username,
       userId: userId,
       activeUsers: [...activeUsers],
-      messageCache: [...messageCache]
+      messageCache: [...messageCache],
+      serverProtocolVersion: serverProtocolVersion
     });
+
+    if (isConnected) return;
+    console.log('socket.on: add user, new user connected so broadcasting it to all clients.');
+    // if ( users_connected.indexOf(userId) < 0 ) {
+    //   users_connected.push(userId);
+    // }
+
+    //uid = userId;
+    // we store the username in the socket session for this client
+    
+    
+    
+    
+    //isConnected = true;
     // // echo globally (all clients) that a person has connected
     // socket.broadcast.emit('user joined', {
     //   username: socket.username,
     //   numUsers: numUsers,
     //   activeUsers: [...activeUsers]
     // });
-    if ( users.indexOf(userId) < 0 ) {
-      console.log('New user connected: ' + userId);
-      users.push(userId);
+    // if ( users.indexOf(userId) < 0 ) {
+    //   console.log('New user connected: ' + userId);
+    //   users.push(userId);
 
       // echo globally (all clients) that a person has connected
-      socket.broadcast.emit('user joined', {
-        username: socket.username,
-        userId: userId,
-        numUsers: users.length,
-        activeUsers: [...activeUsers]
-      });
-    }
+    socket.broadcast.emit('user joined', {
+      username: socket.username,
+      userId: userId,
+      numUsers: activeUsers.size,
+      activeUsers: [...activeUsers]
+    });
+
+    isConnected = true;
+    // }
   });
 
   // when the client emits 'typing', we broadcast it to others
@@ -131,33 +166,26 @@ io.on('connection', (socket) => {
   });
 
   // when the user disconnects.. perform this
-  socket.on('disconnect', () => {
-    if (isConnected) {
-      users_connected.splice( users_connected.indexOf(uid), 1);
+  // socket.on('disconnect', () => {
+  //   if (isConnected) {
+  //     users_connected.splice( users_connected.indexOf(uid), 1);
 
-      setTimeout(function () {
-        if ( users_connected.indexOf(uid) < 0 ) {
-          activeUsers.delete(socket.username);
-          // echo globally that this client has left
-          socket.broadcast.emit('user left', {
-            username: socket.username,
-            userId: uid,
-            numUsers: activeUsers.size
-          });
+  //     setTimeout(function () {
+  //       if ( users_connected.indexOf(uid) < 0 ) {
+  //         activeUsers.delete(socket.username);
+  //         // echo globally that this client has left
+  //         socket.broadcast.emit('user left', {
+  //           username: socket.username,
+  //           userId: uid,
+  //           numUsers: activeUsers.size
+  //         });
 
-          var index = users.indexOf(uid);
-          users.splice(index, 1);
-        }
-      }, 8000);
-      
-      
-      // // echo globally that this client has left
-      // socket.broadcast.emit('user left', {
-      //   username: socket.username,
-      //   numUsers: numUsers
-      // });
-    }
-  });
+  //         var index = users.indexOf(uid);
+  //         users.splice(index, 1);
+  //       }
+  //     }, 8000);
+  //   }
+  // });
 
   // when the client emits 'image', we broadcast it to others
   socket.on('image', async image => {
@@ -193,6 +221,77 @@ io.on('connection', (socket) => {
   }
 });
 
+function pushToken(id, token) {
+  if (getSession(token)) {
+      sessions.forEach((session) => {
+          if (session.token === token) {
+              session.connections.push(id);
+          }
+      });
+  } else {
+      sessions.push({ token, connections: [id] });
+  }
+}
+
+function getSession(token) {
+  return sessions.filter((session) => session.token === token)[0];
+}
+
+function disconnectConnection(id, token) {
+  sessions.forEach((session, index) => {
+      if (session.token === token) {
+          session.connections.splice(session.connections.indexOf(id), 1);
+          if (session.connections.length == 0) {
+              sessions.splice(index, 1);
+          }
+      }
+  });
+}
+
+function onConnect(id, token, callback) {
+  if (!getSession(token)) {
+      pushToken(id, token);
+      callback({ id, token });
+  } else {
+      pushToken(id, token);
+  }
+}
+
+function getChatUser(token) {
+  return [...activeUsers].filter(usr => usr.token == token )[0];
+}
+
+function onDisconnect(id, token, timeout, callback) {
+  setTimeout(() => {
+      disconnectConnection(id, token);
+      if (!getSession(token)) callback({ id, token });
+  }, timeout);
+}
+
+function onLogout() {
+  sessions.forEach((session) => {
+      if (session.token === token) {
+          session.connections.forEach((connection) => {
+              io.to(connection).emit('logout');
+          });
+      }
+  });
+}
+
+/**
+ * Sends message to all connections user has
+ */
+function pushMessage(token, data) {
+  let session = getSession(token);
+  if (session) {
+      let connections = session.connections;
+      connections.forEach((connection) => {
+          io.to(connection).emit('push_message', data);
+      });
+  }
+  return session != undefined;
+}
+
 registerCommand("help", function(cmd) {
     var parameters = smart_split(cmd, " ", false).slice(1);
     console.log(parameters);
@@ -217,7 +316,7 @@ registerCommand("help", function(cmd) {
 });
 
 registerCommand("users", function(cmd) {
-    var helpContext = "Users: " + [...activeUsers];
+    var helpContext = "Users: " + [...activeUsers].map(x => x.username).toString();
     return helpContext;
 });
 
@@ -232,7 +331,7 @@ registerCommands(["quit", "exit", "disconnect", "logout"], function(cmd) {
     // echo globally that this client has left
     socket.broadcast.emit('user left', {
       username: socket.username,
-      numUsers: users.size
+      numUsers: activeUsers.size
     });
     return "Disconnected.";
 });

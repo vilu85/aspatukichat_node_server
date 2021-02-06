@@ -17,6 +17,23 @@ class cachedMessage {
     return data;
   }
 }
+class chatUser {
+  constructor(username, token, id) {
+    this.username = username;
+    this.token = token;
+    this.id = id;
+  }
+
+  getData() {
+    var data = {
+      'username' : this.username,
+      'token' : this.token,
+      'id' : this.id
+    };
+
+    return data;
+  }
+}
 $(function() {
   var FADE_TIME = 150; // ms
   var TYPING_TIMER_LENGTH = 400; // ms
@@ -369,7 +386,7 @@ $(function() {
       prepend: true
     });
     addParticipantsMessage(data);
-    data.activeUsers.map((user) => { users.add(user); addToUsersBox(user);});
+    data.activeUsers.map((user) => { users.add(user); addToUsersBox(user.username);});
     if(data.messageCache) {
       data.messageCache.map((msgEntry) => {
         addCachedMessage(new cachedMessage(msgEntry.user, msgEntry.content, msgEntry.time, msgEntry.image));
