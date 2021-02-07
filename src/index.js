@@ -8,6 +8,8 @@ var server = require('http').createServer(app);
 var io = require('socket.io')(server);
 var port = process.env.PORT || 3001;
 var registry = new Map();
+var helpers = require('./helpers');
+//var commandRegistry = require('./commandRegistry');
 
 var users = [],
     users_connected = [],
@@ -94,6 +96,44 @@ io.on('connection', (socket) => {
       message: data.message,
       image: data.image
     });  
+  });
+
+  socket.on('join', (data) => {
+    console.log('socket.on: join, data = %s', data);
+    socket.username = data.username;
+    socket.userId = userId;
+
+    if(!helpers.checkCompatibility(serverProtocolVersion, data.clientVersion)) {
+      console.log('Server and client protocol version mismatch!');
+      //TODO: emit error to client and disconnect
+    }
+
+    if(getChatUser(token) == undefined) {
+      console.log('socket.on: join, getChatUser(%s) returned undefined, adding new active user', token);
+      activeUsers.add(new chatUser(data.username, token, id));
+    }
+
+    socket.emit('login', {
+      numUsers: activeUsers.size,
+      username: socket.username,
+      userId: userId,
+      activeUsers: [...activeUsers],
+      messageCache: [...messageCache],
+      serverProtocolVersion: serverProtocolVersion
+    });
+
+    if (isConnected) return;
+    console.log('socket.on: join, new user connected so broadcasting it to all clients.');
+    
+      // echo globally (all clients) that a person has connected
+    socket.broadcast.emit('user joined', {
+      username: socket.username,
+      userId: userId,
+      numUsers: activeUsers.size,
+      activeUsers: [...activeUsers]
+    });
+
+    isConnected = true;
   });
 
   // when the client emits 'add user', this listens and executes
@@ -314,6 +354,8 @@ registerCommand("help", function(cmd) {
     }
 
 });
+
+//commandRegistry.registerCommands(["users", "whoisin"], () => { return "Users: " + [...activeUsers].map(x => x.username).toString(); });
 
 registerCommand("users", function(cmd) {
     var helpContext = "Users: " + [...activeUsers].map(x => x.username).toString();

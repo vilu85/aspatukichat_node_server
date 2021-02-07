@@ -1,3 +1,4 @@
+const clientVersion = "1.3.0";
 class cachedMessage {
   constructor(userIn, contentIn, timeIn, imageIn = undefined) {
     this.user = userIn;
@@ -125,7 +126,12 @@ $(function() {
       $currentInput = $inputMessage.focus();
 
       // Tell the server your username
-      socket.emit('add user', username);
+      //socket.emit('add user', username);
+      var data = {
+        'username' : username,
+        'clientVersion' : clientVersion
+      };
+      socket.emit('join', data);
     }
   };
 
