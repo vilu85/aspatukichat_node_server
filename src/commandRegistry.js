@@ -1,16 +1,31 @@
 class Command {
-    constructor([...commands], [...args], func, helpText = undefined) {
-        this.commands = commands;
-        this.args = args;
+    /**
+     * 
+     * @param {String} param0 All command words for this action
+     * @param {String} param1 Arguments to be passed for the action
+     * @param {Function} func Callback
+     * @param {String} helpText Help text for this action
+     */
+    constructor([...param0], [...param1], func, helpText = undefined) {
+        this.commands = param0;
+        this.args = param1;
         this.callback = func;
         this.helpText = helpText;
     }
 
+    /**
+     * 
+     * @param {String} content 
+     */
     setHelp(content) {
         this.helpText = content;
     }
 
-    getAliases() {
+    /**
+     * 
+     * @returns {Array<String>} Keywords for this command
+     */
+    getKeywords() {
         return this.commands;
     }
 }
@@ -19,23 +34,53 @@ class CommandRegistry {
 
     constructor() {
         this.registry = new Map();
-    }  
+    }
+    
+    /**
+     * 
+     * @param {Command} command 
+     * @param {Function} func 
+     */
+    registerCommand(command, func) {
+        this.registry.set(command.toString().toLowerCase(), func);
+    }
 
     registerCommands([...commands], func) {
-        registerCommand(new Command(commands), func);
+        this.registerCommand(new Command(commands), func);
         [...commands].forEach(cmd => {
             console.log("registering alias " + cmd);
             
         });
     }
     
+    parseCommand(data) {
+        data = data.substring(1);
+        var cmd = data.split(" ")[0].toLowerCase();
+        var args = data.split(" ").slice(1);
+        console.log('parsing: data = %s, cmd = %s, args = %s', data, cmd, args);
+
+        if(commandExists(cmd)) {
+
+        }
+
+        if(registry.has(cmd)) {
+            var result = registry.get(cmd)(data);
+            console.log("result = %s", result);
+
+            if (result != null) {
+                replyClient(result);
+            }
+        }
+    }
+
     /**
-     * 
-     * @param {Command} command 
-     * @param {*} func 
+     * Checks if given command exists in registry
+     * @param {String} cmd command word to check
+     * @returns {Boolean} true if command was found
      */
-    registerCommand(command, func) {
-        this.registry.set(command.toString().toLowerCase(), func);
+    commandExists(cmd) {
+        var registeredCommand = [...this.registry].filter(v => v.getKeywords().filter(v2 => v2 == cmd)[0])[0];
+        return registeredCommand != undefined;
     }
 
     smart_split(input, del, empty_space) {
