@@ -53,22 +53,23 @@ class CommandRegistry {
         });
     }
     
-    parseCommand(data) {
+    parseCommand(socket, data) {
         data = data.substring(1);
         var cmd = data.split(" ")[0].toLowerCase();
         var args = data.split(" ").slice(1);
         console.log('parsing: data = %s, cmd = %s, args = %s', data, cmd, args);
 
-        if(commandExists(cmd)) {
-
+        var command = this.commandExists(cmd);
+        if(command != undefined) {
+            console.log("Command was found.");
         }
 
-        if(registry.has(cmd)) {
-            var result = registry.get(cmd)(data);
+        if(this.registry.has(cmd)) {
+            var result = this.registry.get(cmd)(data);
             console.log("result = %s", result);
 
             if (result != null) {
-                replyClient(result);
+                this.replyClient(socket, result);
             }
         }
     }
@@ -76,11 +77,17 @@ class CommandRegistry {
     /**
      * Checks if given command exists in registry
      * @param {String} cmd command word to check
-     * @returns {Boolean} true if command was found
+     * @returns {Command} registered Command if it exists
      */
     commandExists(cmd) {
         var registeredCommand = [...this.registry].filter(v => v.getKeywords().filter(v2 => v2 == cmd)[0])[0];
-        return registeredCommand != undefined;
+        return registeredCommand;
+    }
+
+    replyClient(socket, data) {
+        socket.emit('new server message', {
+            data: data
+        });
     }
 
     smart_split(input, del, empty_space) {
