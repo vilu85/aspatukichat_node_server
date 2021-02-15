@@ -9,7 +9,7 @@ var io = require('socket.io')(server);
 var port = process.env.PORT || 3001;
 var registry = new Map();
 var helpers = require('./helpers');
-//var commandRegistry = require('./commandRegistry');
+var commandRegistry = require('./commandRegistry');
 
 var users = [],
     users_connected = [],
@@ -79,6 +79,7 @@ io.on('connection', (socket) => {
     // we tell the client to execute 'new message'
     if(data.length > 1 && data.charAt(0) == "/") {
       parseCommand(data);
+      commandRegistry.parseCommand(socket, data);
     } else {
       addMessageCache(new cachedMessage(socket.username, data));
       socket.broadcast.emit('new message', {
