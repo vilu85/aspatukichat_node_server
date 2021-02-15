@@ -162,8 +162,10 @@ gulp.task('clean', () => {del(['build']); del(['dist']);});
 // Gulp task to minify all files
 gulp.task( 'minifyAll', gulp.series('styles','scripts','html'));
  
-gulp.task( 'default', gulp.series('bump', 'buildSources', 'minifyAll', 'zipBuild'));
+gulp.task( 'default', gulp.series( 'clean', 'bump', 'buildSources', 'minifyAll', 'zipBuild'));
+
+gulp.task( 'build', gulp.series( 'buildSources', 'minifyAll', 'zip' ));
 
 gulp.task( 'build source zip', gulp.series( 'bump', 'zip' ));
 
-gulp.task( 'build minified release', gulp.series( 'bump', 'buildSources', 'minifyAll', 'zipBuild' ));
+gulp.task( 'build minified release', gulp.series( 'clean', 'bump', 'buildSources', 'minifyAll', 'zipBuild' ));
