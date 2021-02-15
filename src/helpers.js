@@ -35,7 +35,7 @@ class Helpers {
      */
     checkCompatibility(serverVersion, clientVersion) {
         console.log(serverVersion, clientVersion);
-        return new ComparableVersion(serverVersion).isCompatibleWith(ComparableVersion(clientVersion));
+        return new ComparableVersion(serverVersion).isCompatibleWith(new ComparableVersion(clientVersion));
     }
 }
 
