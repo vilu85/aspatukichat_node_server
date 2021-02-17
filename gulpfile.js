@@ -27,7 +27,7 @@ const AUTOPREFIXER_BROWSERS = [
   'bb >= 10'
 ];
 
-gulp.task('styles', function () {
+gulp.task('styles', async function () {
   return gulp.src( cssSrc )
                 // Auto-prefix css styles for cross browser compatibility
                 //.pipe(autoprefixer({browsers: AUTOPREFIXER_BROWSERS}))
@@ -38,14 +38,14 @@ gulp.task('styles', function () {
                 .pipe(gulp.dest('./build'));
 });
 
-gulp.task( 'scripts', function() {
+gulp.task( 'scripts', async function() {
   return  gulp.src( jsSrc )
                 .pipe( terser() )
                 .pipe( gulp.dest( './build' ) );
 });
 
 // Gulp task to minify HTML files
-gulp.task('html', function() {
+gulp.task('html', async function() {
   return gulp.src( htmlSrc )
                 .pipe(htmlmin({
                   collapseWhitespace: true,
@@ -60,13 +60,13 @@ gulp.task('html', function() {
 //                 .pipe( gulp.dest( './build/css' ) );
 // });
 
-gulp.task('zip', function () {
+gulp.task('zip', async function () {
   return gulp.src('./src/**')
                 .pipe( zip('AspaTukiChatPlugin_node-sources.zip') )
                 .pipe(gulp.dest('./dist'));
 });
 
-gulp.task('zipBuild', function () {
+gulp.task('zipBuild', async function () {
   return gulp.src('./build/**')
                 .pipe( zip('AspaTukiChatPlugin_node.zip') )
                 .pipe(gulp.dest('./dist'));
@@ -81,22 +81,22 @@ var files = [
   './src/**/*.pm',
   './src/**/*.svg'
 ];
-gulp.task('buildSources', function() {
+gulp.task('buildSources', async function() {
   return gulp.src(files)
                 .pipe(gulp.dest('./build'));
 });
 
-gulp.task('obfuscate', function() {
+gulp.task('obfuscate', async function() {
   return gulp.src( jsSrc )
                 .pipe(javascriptObfuscator())
                 .pipe(gulp.dest('./build'));
 });
 
-gulp.task( 'automate', function() {
+gulp.task( 'automate', async function() {
   gulp.watch( [ jsSrc, cssSrc, htmlSrc ], gulp.series('scripts', 'styles', 'html'));
 });
 
-gulp.task( 'bump', function () {
+gulp.task( 'bump', async function () {
   /// <summary>
   /// It bumps revisions
   /// Usage:
@@ -157,7 +157,7 @@ gulp.task( 'bump', function () {
 // });
 
 // Clean output directory
-gulp.task('clean', () => {del(['build']); del(['dist']);});
+gulp.task('clean', async () => {del(['build']); del(['dist']);});
 
 // Gulp task to minify all files
 gulp.task( 'minifyAll', gulp.series('styles','scripts','html'));
