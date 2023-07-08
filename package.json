@@ -31,11 +31,8 @@
   },
   "dependencies": {
     "express": "~4.17.3",
-<<<<<<< HEAD
-=======
     "gulp-bump": "^3.2.0",
     "gulp-replace": "^1.0.0",
->>>>>>> parent of 4950b8b (Switch to use VersionAutoPatch plugin for version increment)
     "socket.io": "~2.5.0"
   },
   "scripts": {
