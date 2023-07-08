@@ -7,9 +7,12 @@ const del = require('del');
 const zip = require('gulp-zip');
 const javascriptObfuscator = require('gulp-javascript-obfuscator');
 const args = require('yargs').argv;
-const bump = require('gulp-bump');
-const fs = require('fs');
-const replace = require('gulp-replace');
+const VersionAutoPatchPlugin = require("version-auto-patch");
+
+const versionPlugin = new VersionAutoPatchPlugin({
+  files: "./package.json",
+  type: "patch"
+});
 
 var jsSrc = './src/**/*.js';
 var cssSrc = './src/**/*.css';
@@ -54,12 +57,6 @@ gulp.task('html', async function() {
                 .pipe(gulp.dest('./build'));
 });
 
-// gulp.task( 'styles', function() {
-//   return  gulp.src( sassSrc )
-//                 .pipe( sass( { outputStyle: 'compressed' } ) )
-//                 .pipe( gulp.dest( './build/css' ) );
-// });
-
 gulp.task('zip', async function () {
   return gulp.src('./src/**')
                 .pipe( zip('AspaTukiChatPlugin_node-sources.zip') )
@@ -96,65 +93,18 @@ gulp.task( 'automate', async function() {
   gulp.watch( [ jsSrc, cssSrc, htmlSrc ], gulp.series('scripts', 'styles', 'html'));
 });
 
-gulp.task( 'bump', async function () {
-  /// <summary>
-  /// It bumps revisions
-  /// Usage:
-  /// 1. gulp bump : bumps the package.json and bower.json to the next minor revision.
-  ///   i.e. from 0.1.1 to 0.1.2
-  /// 2. gulp bump --version 1.1.1 : bumps/sets the package.json and bower.json to the 
-  ///    specified revision.
-  /// 3. gulp bump --type major       : bumps 1.0.0 
-  ///    gulp bump --type minor       : bumps 0.1.0
-  ///    gulp bump --type patch       : bumps 0.0.2
-  ///    gulp bump --type prerelease  : bumps 0.0.1-2
-  /// </summary>
-
-  var type = args.type;
-  var version = args.version;
-  var msg = version;
-  var options = {};
-  if (version) {
-      options.version = version;
-      msg += ' to ' + version;
-  } else {
-      options.type = type;
-      msg += ' for a ' + type;
-  }
-
-  return gulp.src(['./package.json'])
-                .pipe(bump(options))
-                .pipe(gulp.dest('./'));
+gulp.task("update-version", function (cb) {
+  versionPlugin
+    .updateVersion()
+    .then(() => {
+      console.log("Version updated");
+      cb();
+    })
+    .catch((err) => {
+      console.error("Error updating version:", err);
+      cb(err);
+    });
 });
-
-// gulp.task('increment-version', function(){
-//   //docString is the file from which you will get your constant string
-//   var docString = fs.readFileSync('./someFolder/constants.js', 'utf8');
-
-//   //The code below gets your semantic v# from docString
-//   var versionNumPattern=/'someTextPreceedingVNumber', '(.*)'/; //This is just a regEx with a capture group for version number
-//   var vNumRexEx = new RegExp(versionNumPattern);
-//   var oldVersionNumber = (vNumRexEx.exec(docString))[1]; //This gets the captured group
-
-//   //...Split the version number string into elements so you can bump the one you want
-//   var versionParts = oldVersionNumber.split('.');
-//   var vArray = {
-//       vMajor : versionParts[0],
-//       vMinor : versionParts[1],
-//       vPatch : versionParts[2]
-//   };
-
-//   vArray.vPatch = parseFloat(vArray.vPatch) + 1;
-//   var periodString = ".";
-
-//   var newVersionNumber = vArray.vMajor + periodString +
-//                          vArray.vMinor+ periodString +
-//                          vArray.vPatch;
-
-//   gulp.src(['./someFolder/constants.js'])
-//       .pipe(replace(/'someTextPreceedingVNumber', '(.*)'/g, newVersionNumber))
-//       .pipe(gulp.dest('./someFolder/'));
-// });
 
 // Clean output directory
 gulp.task('clean', async () => {del(['build']); del(['dist']);});
@@ -162,10 +112,10 @@ gulp.task('clean', async () => {del(['build']); del(['dist']);});
 // Gulp task to minify all files
 gulp.task( 'minifyAll', gulp.series('styles','scripts','html'));
  
-gulp.task( 'default', gulp.series( 'clean', 'bump', 'buildSources', 'minifyAll', 'zipBuild'));
+gulp.task( 'default', gulp.series( 'clean', 'update-version', 'buildSources', 'minifyAll', 'zipBuild'));
 
 gulp.task( 'build', gulp.series( 'buildSources', 'minifyAll', 'zip' ));
 
-gulp.task( 'build source zip', gulp.series( 'bump', 'zip' ));
+gulp.task( 'build source zip', gulp.series( 'update-version', 'zip' ));
 
-gulp.task( 'build minified release', gulp.series( 'clean', 'bump', 'buildSources', 'minifyAll', 'zipBuild' ));
+gulp.task( 'build minified release', gulp.series( 'clean', 'update-version', 'buildSources', 'minifyAll', 'zipBuild' ));
