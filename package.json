@@ -1,6 +1,6 @@
 {
   "name": "aspatukichat_node_server",
-  "version": "1.2.3",
+  "version": "1.2.2",
   "description": "Node Server for AspaTukiChat plugin",
   "main": "index.js",
   "author": "Ville Perkkio",
@@ -25,13 +25,17 @@
     "gulp-autoprefixer": "^7.0.1",
     "gulp-csso": "^4.0.1",
     "gulp-htmlmin": "^5.0.1",
-    "gulp-javascript-obfuscator": "^1.1.6",
     "gulp-terser": "^1.4.1",
     "gulp-zip": "^5.0.2",
-    "version-auto-patch": "^1.2.1"
+    "gulp-javascript-obfuscator": "^1.1.6"
   },
   "dependencies": {
     "express": "~4.17.3",
+<<<<<<< HEAD
+=======
+    "gulp-bump": "^3.2.0",
+    "gulp-replace": "^1.0.0",
+>>>>>>> parent of 4950b8b (Switch to use VersionAutoPatch plugin for version increment)
     "socket.io": "~2.5.0"
   },
   "scripts": {
