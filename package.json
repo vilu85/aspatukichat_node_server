@@ -30,7 +30,7 @@
     "gulp-javascript-obfuscator": "^1.1.6"
   },
   "dependencies": {
-    "express": "~4.21.2",
+    "express": "~5.1.0",
     "gulp-bump": "^3.2.0",
     "gulp-replace": "^1.1.4",
     "socket.io": "~4.8.1"
